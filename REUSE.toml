@@ -2,6 +2,12 @@ version = 1
 
 # Plain-data and template files that cannot carry a header comment.
 [[annotations]]
-path = ["LICENSE", "NOTICE", ".gitignore", "src/benelog_client/py.typed"]
+path = [
+    "LICENSE",
+    "NOTICE",
+    ".gitignore",
+    "src/benelog_client/py.typed",
+    "src/benelog_client/masterdata/vocabulary.json",
+]
 SPDX-FileCopyrightText = "2026 benelog GmbH & Co. KG"
 SPDX-License-Identifier = "Apache-2.0"
