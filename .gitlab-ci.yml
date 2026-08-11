@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 benelog GmbH & Co. KG
+
+default:
+  image: python:3.12-slim
+  tags:
+    - k8s-java21
+
+stages:
+  - check
+
+format:
+  stage: check
+  script:
+    - pip install --quiet "ruff==0.16.2"
+    - ruff format --check --diff .
+
+lint:
+  stage: check
+  script:
+    - pip install --quiet "ruff==0.16.2"
+    - ruff check .
+
+typecheck:
+  stage: check
+  script:
+    - pip install --quiet -e ".[dev]"
+    - mypy
+
+test:
+  stage: check
+  script:
+    - pip install --quiet -e ".[dev]"
+    - pytest -q
+
+# The oldest interpreter both host frameworks share. Catches syntax that only
+# works on newer Pythons before a host does.
+test-floor:
+  stage: check
+  image: python:3.10-slim
+  script:
+    - pip install --quiet -e ".[dev]"
+    - pytest -q
+
+# The library is Apache-2.0; a strong-copyleft dependency would make it
+# effectively copyleft regardless of the header. Fail loudly instead.
+# MPL-2.0 is deliberately NOT on the fail list: it is file-level copyleft,
+# compatible with Apache-2.0 combination, and certifi (a transitive
+# dependency of requests) carries it. Everything else stays permissive.
+licences:
+  stage: check
+  script:
+    - pip install --quiet -e . pip-licenses
+    - pip-licenses --packages requests urllib3 idna certifi charset-normalizer
+      --fail-on "GPL;GPLv2;GPLv3;LGPL;LGPLv2;LGPLv3;AGPL;AGPLv3"
+
+reuse:
+  stage: check
+  script:
+    - pip install --quiet reuse
+    - reuse lint

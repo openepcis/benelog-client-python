@@ -1,0 +1,9 @@
+benelog-client-python
+Copyright 2026 benelog GmbH & Co. KG
+
+This product includes software developed by benelog GmbH & Co. KG.
+
+The GS1 identifier arithmetic in benelog_client/core/gs1.py implements the
+check digit and key format rules published in the GS1 General Specifications.
+It is a clean-room implementation written by benelog from the specification
+text; it shares no code with any other implementation.

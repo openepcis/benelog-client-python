@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 benelog GmbH & Co. KG
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "benelog-client"
+version = "0.1.0.dev0"
+description = "benelog platform client: core transport and auth, master data publication, GS1 key registry"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "benelog GmbH & Co. KG" }]
+# 3.10 is the oldest interpreter current Odoo supports; ERPNext (Frappe 15+)
+# requires 3.10 as well, so this is the floor both hosts share.
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "mypy>=1.14",
+    "types-requests",
+    "ruff==0.16.2",
+    "reuse>=5",
+    "pip-licenses>=5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/benelog_client"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# Pinned so the format gate is reproducible. A different ruff reformats files
+# nobody touched and turns an unrelated push red. Raising this is a deliberate
+# act: bump it, run `ruff format`, commit the churn as its own change.
+required-version = "==0.16.2"
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+packages = ["benelog_client"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
