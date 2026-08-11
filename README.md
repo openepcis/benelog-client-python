@@ -30,10 +30,37 @@ across languages. The wire contract both implement is recorded in the Odoo
 repository under `docs/api/observed-contract.md` and is pinned against the
 platform's live OpenAPI.
 
+## Usage
+
+One configured URL; the Keycloak realm and token endpoint are discovered from
+it (RFC 9728). Authentication uses an OIDC offline token, which the host's
+`TokenStore` persists — including the rotated replacement Keycloak may answer
+with on every exchange.
+
+```python
+from benelog_client.core.auth import InMemoryTokenStore, OfflineTokenAuth
+from benelog_client.core.client import Client
+from benelog_client.core.config import ClientConfig
+from benelog_client.masterdata import Masterdata
+from benelog_client.registry import Registry
+
+config = ClientConfig(base_url="https://id.dev.epcis.cloud")
+auth = OfflineTokenAuth(config, InMemoryTokenStore(offline_token), client_id="my-connector")
+client = Client(config, auth)
+
+gtin = Registry(client).draw_key("01")
+Masterdata(client).upsert_product(gtin, {"productName": {"en": "Chair"}})
+Registry(client).confirm_key("01", gtin)
+```
+
+A complete round trip, including release on failure and a Verified-by-GS1
+check, is in `examples/publish_product.py`.
+
 ## Status
 
-Extraction in progress. `core.gs1` and `core.errors` are complete and tested;
-transport, masterdata and registry follow in that order. See the roadmap in the
+`core`, `masterdata` and `registry` are extracted and tested; the vocabulary
+manifest is pinned in `masterdata/vocabulary.json`. `resolver` (linkset
+management) and `epcis` (event capture) are planned. See the roadmap in the
 Odoo repository: `docs/architecture/connector-roadmap.md`.
 
 ## Development
