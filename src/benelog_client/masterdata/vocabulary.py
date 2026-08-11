@@ -21,6 +21,7 @@ single source, and updating it is a reviewed change, not a runtime surprise.
 """
 
 import json
+import sys
 from dataclasses import dataclass
 from importlib import resources
 
@@ -74,8 +75,10 @@ class Term:
 
 class _Manifest:
     def __init__(self) -> None:
+        # By the package object, not by name: the name would break when the
+        # library is vendored under another package (the Odoo addon does).
         raw = json.loads(
-            resources.files("benelog_client.masterdata")
+            resources.files(sys.modules[__package__])
             .joinpath("vocabulary.json")
             .read_text(encoding="utf-8")
         )
