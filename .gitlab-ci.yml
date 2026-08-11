@@ -57,5 +57,7 @@ licences:
 reuse:
   stage: check
   script:
-    - pip install --quiet reuse
+    # charset-normalizer: reuse needs an encoding detector at runtime and the
+    # slim image ships none.
+    - pip install --quiet reuse charset-normalizer
     - reuse lint
