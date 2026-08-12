@@ -28,6 +28,10 @@ class TestKinds:
         assert kind.key_type == "GLN"
         assert kind.endpoint == "/organizations"
 
+    def test_every_kind_names_its_gs1_class(self) -> None:
+        assert vocabulary.kind("PRODUCT").record_type == "Product"
+        assert vocabulary.kind("ORGANIZATION").record_type == "Organization"
+
     def test_an_unknown_kind_is_a_key_error(self) -> None:
         with pytest.raises(KeyError):
             vocabulary.kind("PLACE")

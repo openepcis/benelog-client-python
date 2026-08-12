@@ -54,8 +54,15 @@ class TestUpsert:
         verb, path, payload = client.calls[0]
         assert (verb, path) == ("PUT", f"/products/{GTIN}")
         assert payload["gtin"] == GTIN
+        # The resolver's schema refuses a product without its GS1 class.
+        assert payload["type"] == "Product"
         assert payload["productName"] == {"en": "Chair"}
         assert "gtin" not in document  # the caller's document is not mutated
+
+    def test_a_caller_supplied_type_is_not_overridden(self) -> None:
+        client = StubClient()
+        masterdata(client).upsert_product(GTIN, {"type": ["Product", "TextileApparel"]})
+        assert client.calls[0][2]["type"] == ["Product", "TextileApparel"]
 
     def test_an_organization_carries_its_gln_term(self) -> None:
         client = StubClient()
