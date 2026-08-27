@@ -11,6 +11,7 @@ from benelog_client.core.client import Client
 from benelog_client.core.config import ClientConfig
 from benelog_client.events import (
     Capture,
+    Query,
     aggregation_event,
     cbv,
     document,
@@ -252,3 +253,63 @@ class TestCheck:
     def test_silence_means_it_works(self) -> None:
         capture = capture_with({"/capture": Answer(200, {"eventList": []})})
         assert capture.check() == ""
+
+
+def query_with(answers: dict[str, Answer]) -> Query:
+    client = Client(
+        ClientConfig(base_url="https://api.example.test"),
+        FixedAuth(),  # type: ignore[arg-type]
+        session=ScriptedSession(answers),
+    )
+    return Query(client)
+
+
+def page(events: list[dict[str, Any]], next_token: str = "") -> Answer:
+    body: dict[str, Any] = {"epcisBody": {"eventList": events}}
+    if next_token:
+        body["nextPageToken"] = next_token
+    return Answer(200, body)
+
+
+class TestQuery:
+    def test_a_watermark_is_sent_as_ge_record_time(self) -> None:
+        query = query_with({"/events": page([])})
+        list(query.since("2026-08-27T22:13:29Z"))
+        _, _, kw = query._client._session.calls[0]  # type: ignore[attr-defined]
+        assert kw["params"]["GE_recordTime"] == "2026-08-27T22:13:29Z"
+
+    def test_it_walks_pages_until_the_token_runs_out(self) -> None:
+        session = ScriptedSession({})
+        pages = [page([{"eventID": "a"}], "t1"), page([{"eventID": "b"}])]
+
+        def answer(method: str, url: str, **kw: Any) -> Answer:
+            session.calls.append((method, url, kw))
+            return pages[len(session.calls) - 1]
+
+        session.request = answer  # type: ignore[method-assign]
+        client = Client(
+            ClientConfig(base_url="https://api.example.test"),
+            FixedAuth(),  # type: ignore[arg-type]
+            session=session,
+        )
+        assert [e["eventID"] for e in Query(client).since("2026-08-27T22:13:29Z")] == ["a", "b"]
+        # The second call continues the first rather than starting over.
+        assert session.calls[1][2]["params"]["nextPageToken"] == "t1"
+        assert "GE_recordTime" not in session.calls[1][2]["params"]
+
+    def test_a_repository_that_never_stops_paging_does_not_run_forever(self) -> None:
+        query = query_with({"/events": page([{"eventID": "a"}], "always")})
+        assert len(list(query.since("2026-08-27T22:13:29Z", pages=3))) == 3
+
+    def test_an_identifier_is_one_path_segment(self) -> None:
+        query = query_with({"/epcs/": page([])})
+        query.for_epc("https://id.gs1.org/01/09521234000012/21/1")
+        _, url, _ = query._client._session.calls[0]  # type: ignore[attr-defined]
+        assert "/epcs/https%3A%2F%2Fid.gs1.org%2F01%2F09521234000012%2F21%2F1/events" in url
+
+    def test_missing_the_query_role_is_named_not_swallowed(self) -> None:
+        query = query_with({"/events": Answer(403)})
+        assert "'query' role" in query.check()
+
+    def test_a_repository_that_answers_is_no_complaint(self) -> None:
+        assert query_with({"/events": page([])}).check() == ""
