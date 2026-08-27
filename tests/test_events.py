@@ -11,7 +11,6 @@ from benelog_client.core.client import Client
 from benelog_client.core.config import ClientConfig
 from benelog_client.events import (
     Capture,
-    CaptureOutcome,
     aggregation_event,
     cbv,
     document,
@@ -226,11 +225,12 @@ class TestCapture:
         assert outcome.settled and not outcome.success
         assert outcome.errors == ("epcList[0] is not a URI",)
 
-    def test_a_forgotten_job_counts_as_stored(self) -> None:
-        # Jobs are retained for a while. "Forgotten" only ever follows
-        # "stored": a rejected one keeps its reason.
+    def test_a_job_the_repository_does_not_know_is_unknown_not_stored(self) -> None:
+        # A refusal and a forgotten job answer alike, so neither may be read as
+        # a delivery.
         capture = capture_with({"/capture/j1": Answer(404, {"title": "not found"})})
-        assert capture.outcome("j1") == CaptureOutcome(running=False, success=True)
+        outcome = capture.outcome("j1")
+        assert outcome.settled and not outcome.known and not outcome.success
 
     def test_a_receipt_without_a_job_cannot_be_asked_about(self) -> None:
         capture = capture_with({"/capture": accepted(location="")})
