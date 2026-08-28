@@ -23,7 +23,14 @@ benelog_client/
   core/        Identifiers, Digital Link URIs, transport, auth, errors
   masterdata/  Product and organization records, upsert, bulk, GPC
   registry/    GTIN/GLN allocation, credential deposit, Verified by GS1
+  events/      EPCIS 2.0 visibility events: building them, capturing them
 ```
+
+`masterdata/` and `events/` address two different services. Master data goes to
+the catalog behind the Digital Link resolver; events go to an EPCIS repository,
+on its own host and behind its own permission — capture needs the `capture`
+role, and a credential that publishes products perfectly well is refused there.
+Build a second `Client` for it rather than reusing the resolver's.
 
 The module layout mirrors `benelog-client-java` (planned) so the concepts carry
 across languages. The wire contract both implement is recorded in the Odoo
