@@ -28,10 +28,13 @@ dependencies = [
 # under CBV 2.0, the same version the Java side is pinned to, and a version
 # that canonicalised differently would rename every event.
 #
-# It is not a small extra. It pulls PyLD, frozendict, cachetools and Flask, the
-# last of them without a single import in the package's own code. That was
-# weighed and accepted: one implementation of the canonicalisation rules beats
-# a second, leaner one that disagrees with the first.
+# It is not a small extra. It pulls PyLD (and with it frozendict, cachetools,
+# lxml) and declares Flask, the last without a single import in the package's
+# own code. In a plain virtualenv that is merely wasteful. In the Odoo image it
+# is not installable at all: Flask wants a newer Werkzeug than the Debian one
+# Odoo runs on, and pip cannot uninstall a Debian-packaged distribution. There
+# the package is installed with --no-deps beside PyLD and dateutil — see
+# docker/demo/Containerfile in openepcis-odoo.
 hash = [
     "epcis-event-hash-generator==1.9.3",
 ]
