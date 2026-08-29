@@ -15,6 +15,7 @@ from benelog_client.events import (
     aggregation_event,
     cbv,
     document,
+    error_declaration,
     idempotency_key,
     instance_uri,
     object_event,
@@ -445,3 +446,76 @@ class TestEventHashIdentity:
     def test_a_document_without_events_is_left_alone(self) -> None:
         empty = document([])
         assert stamp_event_ids(empty) == empty
+
+
+class TestErrorDeclaration:
+    """Correcting by declaration rather than by edit."""
+
+    def test_a_correction_carries_the_identity_of_what_it_corrects(self) -> None:
+        # The declaration fields are outside the canonical hash, so the same
+        # event with an error declaration attached hashes to the same value.
+        # That is the whole mechanism: a correction does not have to look the
+        # erroneous event's identifier up, it arrives at it.
+        def build(declaration: dict[str, Any] | None) -> str:
+            events = stamp_event_ids(
+                document(
+                    [
+                        object_event(
+                            action="OBSERVE",
+                            event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+                            biz_step="shipping",
+                            epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+                            error_declaration=declaration,
+                        )
+                    ],
+                    creation_time=datetime(2026, 8, 23, 12, 0, tzinfo=timezone.utc),
+                )
+            )["epcisBody"]["eventList"][0]
+            return str(events["eventID"])
+
+        assert build(None) == build(
+            error_declaration(
+                reason=cbv.DID_NOT_OCCUR,
+                declaration_time=datetime(2026, 8, 29, 10, 0, tzinfo=timezone.utc),
+            )
+        )
+
+    def test_the_declaration_says_when_and_why(self) -> None:
+        declaration = error_declaration(
+            reason=cbv.INCORRECT_DATA,
+            declaration_time=datetime(2026, 8, 29, 10, 0, tzinfo=timezone.utc),
+            corrective_event_ids=["ni:///sha-256;abc?ver=CBV2.0"],
+        )
+        assert declaration == {
+            "declarationTime": "2026-08-29T10:00:00.000Z",
+            "reason": "incorrect_data",
+            "correctiveEventIDs": ["ni:///sha-256;abc?ver=CBV2.0"],
+        }
+
+    def test_a_withdrawn_event_has_nothing_to_correct(self) -> None:
+        with pytest.raises(ValueError, match="did_not_occur"):
+            error_declaration(
+                reason=cbv.DID_NOT_OCCUR,
+                declaration_time=datetime(2026, 8, 29, 10, 0, tzinfo=timezone.utc),
+                corrective_event_ids=["ni:///sha-256;abc?ver=CBV2.0"],
+            )
+
+    def test_an_invented_reason_is_refused_here_rather_than_by_the_repository(self) -> None:
+        with pytest.raises(ValueError, match="not a CBV error reason"):
+            error_declaration(
+                reason="wrong_data",
+                declaration_time=datetime(2026, 8, 29, 10, 0, tzinfo=timezone.utc),
+            )
+
+    def test_an_aggregation_can_be_withdrawn_too(self) -> None:
+        event = aggregation_event(
+            action="ADD",
+            event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+            parent_id="https://id.gs1.org/00/095212340000000012",
+            child_epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+            error_declaration=error_declaration(
+                reason=cbv.DID_NOT_OCCUR,
+                declaration_time=datetime(2026, 8, 29, 10, 0, tzinfo=timezone.utc),
+            ),
+        )
+        assert event["errorDeclaration"]["reason"] == "did_not_occur"
