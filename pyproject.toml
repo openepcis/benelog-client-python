@@ -21,6 +21,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The canonical CBV event hash — the eventID of every event this client builds.
+# An extra rather than a dependency, because the library's one hard requirement
+# is `requests` (which Odoo ships anyway) and a host that only publishes master
+# data has no use for a hash generator. Pinned exactly: 1.9.3 canonicalises
+# under CBV 2.0, the same version the Java side is pinned to, and a version
+# that canonicalised differently would rename every event.
+#
+# It is not a small extra. It pulls PyLD, frozendict, cachetools and Flask, the
+# last of them without a single import in the package's own code. That was
+# weighed and accepted: one implementation of the canonicalisation rules beats
+# a second, leaner one that disagrees with the first.
+hash = [
+    "epcis-event-hash-generator==1.9.3",
+]
 dev = [
     "pytest>=8",
     "mypy>=1.14",
@@ -28,6 +42,7 @@ dev = [
     "ruff==0.16.2",
     "reuse>=5",
     "pip-licenses>=5",
+    "epcis-event-hash-generator==1.9.3",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -46,6 +61,13 @@ strict = true
 python_version = "3.10"
 packages = ["benelog_client"]
 mypy_path = "src"
+
+# The hash generator ships no py.typed and is untyped throughout. Its two
+# entry points are wrapped in one function here, and what they answer is
+# checked at runtime rather than by the type checker.
+[[tool.mypy.overrides]]
+module = ["epcis_event_hash_generator.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

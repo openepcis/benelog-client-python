@@ -15,12 +15,13 @@ from benelog_client.events import (
     aggregation_event,
     cbv,
     document,
-    event_id,
+    idempotency_key,
     instance_uri,
     object_event,
     quantity_element,
     sgln,
     sscc_uri,
+    stamp_event_ids,
 )
 
 from .conftest import Answer, StubSession
@@ -52,19 +53,21 @@ class TestIdentifiers:
         assert sscc_uri("340681940000000018").startswith("https://id.gs1.org/00/")
 
 
-class TestEventIdentity:
-    def test_the_same_facts_give_the_same_id(self) -> None:
-        assert event_id("odoo", "WH/IN/0001", cbv.RECEIVING) == event_id(
+class TestIdempotencyKey:
+    """The sender's own handle on a movement — no longer the event's name."""
+
+    def test_the_same_facts_give_the_same_key(self) -> None:
+        assert idempotency_key("odoo", "WH/IN/0001", cbv.RECEIVING) == idempotency_key(
             "odoo", "WH/IN/0001", cbv.RECEIVING
         )
 
-    def test_different_facts_give_different_ids(self) -> None:
-        assert event_id("odoo", "WH/IN/0001", cbv.RECEIVING) != event_id(
+    def test_different_facts_give_different_keys(self) -> None:
+        assert idempotency_key("odoo", "WH/IN/0001", cbv.RECEIVING) != idempotency_key(
             "odoo", "WH/IN/0002", cbv.RECEIVING
         )
 
     def test_it_is_a_uuid_uri(self) -> None:
-        assert event_id("x").startswith("urn:uuid:")
+        assert idempotency_key("x").startswith("urn:uuid:")
 
 
 class TestObjectEvent:
@@ -193,9 +196,9 @@ class TestCapture:
     def test_the_minted_event_ids_travel_with_the_receipt(self) -> None:
         capture = capture_with({"/capture": accepted()})
         event = object_event(
-            action=cbv.OBSERVE, event_time=NOON, event_identifier=event_id("a", "b")
+            action=cbv.OBSERVE, event_time=NOON, event_identifier=idempotency_key("a", "b")
         )
-        assert capture.submit(document([event])).event_ids == (event_id("a", "b"),)
+        assert capture.submit(document([event])).event_ids == (idempotency_key("a", "b"),)
 
     def test_an_accepted_document_is_not_yet_a_stored_one(self) -> None:
         # The whole reason submit returns a receipt: 202 means custody, not
@@ -313,3 +316,132 @@ class TestQuery:
 
     def test_a_repository_that_answers_is_no_complaint(self) -> None:
         assert query_with({"/events": page([])}).check() == ""
+
+
+class TestEventHashIdentity:
+    """The eventID as a property of the event, and where that still holds.
+
+    The two implementations of the canonicalisation — this one (Python 1.9.3,
+    RalphTro/EECC) and the platform's Java module — agree on the plain event
+    shapes and disagree on several richer ones. That is measured, not assumed:
+    over the 37 capture documents in ``openepcis-test-resources`` they agree on
+    12 and differ on 22 (3 the Python side cannot parse at all). The known
+    causes are ordering ones — ``sourceList``/``destinationList`` come out in
+    the opposite order, ``parentID`` lands in a different place, and Java leaves
+    ``certificationInfo`` out of the pre-hash while Python hashes it.
+
+    So these tests pin the shapes we actually mint, and say which they are.
+    """
+
+    def test_a_commissioning_event_hashes_to_the_same_value_as_the_java_side(self) -> None:
+        # The measured cross-language vector: byte-identical to what
+        # CommissioningEventsTest.goldenValues pins in openepcis-connectors.
+        stamped = stamp_event_ids(
+            document(
+                [
+                    object_event(
+                        action="ADD",
+                        event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+                        biz_step="commissioning",
+                        disposition="active",
+                        quantities=[
+                            quantity_element("https://id.gs1.org/01/09520123456788/10/CHARGE-1")
+                        ],
+                        read_point="9520999999990",
+                    )
+                ],
+                creation_time=datetime(2026, 8, 23, 12, 0, tzinfo=timezone.utc),
+            )
+        )
+        assert stamped["epcisBody"]["eventList"][0]["eventID"] == (
+            "ni:///sha-256;"
+            "f895a478db42352042ceb07ac96a607765697ca0a8e6c3fe76cbdefc537d185a?ver=CBV2.0"
+        )
+
+    def test_the_same_statement_stamps_the_same_identifier(self) -> None:
+        def build(creation: datetime) -> str:
+            stamped = stamp_event_ids(
+                document(
+                    [
+                        object_event(
+                            action="ADD",
+                            event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+                            biz_step="commissioning",
+                            epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+                        )
+                    ],
+                    creation_time=creation,
+                )
+            )
+            return str(stamped["epcisBody"]["eventList"][0]["eventID"])
+
+        # The document's creationDate differs; the event's identity does not,
+        # because creationDate is not part of the event.
+        assert build(datetime(2026, 8, 23, 12, 0, tzinfo=timezone.utc)) == build(
+            datetime(2026, 9, 1, 6, 30, tzinfo=timezone.utc)
+        )
+
+    def test_every_event_in_a_document_gets_its_own_identifier_in_order(self) -> None:
+        first = object_event(
+            action="ADD",
+            event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+            epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+        )
+        second = object_event(
+            action="ADD",
+            event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+            epcs=["https://id.gs1.org/01/09520123456788/21/SN-2"],
+        )
+        events = stamp_event_ids(document([first, second]))["epcisBody"]["eventList"]
+
+        assert events[0]["epcList"] == first["epcList"]
+        assert events[1]["epcList"] == second["epcList"]
+        assert events[0]["eventID"] != events[1]["eventID"]
+        assert all(str(event["eventID"]).startswith("ni:///sha-256;") for event in events)
+
+    def test_a_prefix_from_an_earlier_document_does_not_leak_into_the_next(self) -> None:
+        # The library keeps its namespace table in a module global and never
+        # resets it. In a long-lived worker serving several tenants, a prefix
+        # bound in one document would otherwise change how the next one
+        # canonicalises — weeks later, in production only.
+        with_prefix = {
+            "@context": [
+                "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld",
+                {"ex": "https://one.example.test/ns/"},
+            ],
+            "type": "EPCISDocument",
+            "schemaVersion": "2.0",
+            "creationDate": "2026-08-23T12:00:00.000Z",
+            "epcisBody": {
+                "eventList": [
+                    {
+                        "type": "ObjectEvent",
+                        "eventTime": "2026-08-10T09:00:00.000Z",
+                        "eventTimeZoneOffset": "+00:00",
+                        "action": "ADD",
+                        "epcList": ["https://id.gs1.org/01/09520123456788/21/SN-1"],
+                        "ex:note": "first",
+                    }
+                ]
+            },
+        }
+        plain = document(
+            [
+                object_event(
+                    action="ADD",
+                    event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+                    epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+                )
+            ],
+            creation_time=datetime(2026, 8, 23, 12, 0, tzinfo=timezone.utc),
+        )
+
+        alone = stamp_event_ids(plain)["epcisBody"]["eventList"][0]["eventID"]
+        stamp_event_ids(with_prefix)
+        after = stamp_event_ids(plain)["epcisBody"]["eventList"][0]["eventID"]
+
+        assert alone == after
+
+    def test_a_document_without_events_is_left_alone(self) -> None:
+        empty = document([])
+        assert stamp_event_ids(empty) == empty
