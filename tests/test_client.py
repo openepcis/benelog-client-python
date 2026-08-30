@@ -124,3 +124,28 @@ class TestAnswers:
         client, _, session = make_client([Answer(200, {})])
         client.get("/products")
         assert session.calls[0][2]["headers"]["Authorization"] == "Bearer token-1"
+
+
+class TestAcceptHeader:
+    """What this client says it can read back.
+
+    The EPCIS capture endpoint produces ``application/ld+json`` and
+    ``application/problem+json`` and nothing else. Asking for plain JSON is
+    answered with 406 before the document is looked at — so a client that only
+    accepts ``application/json`` never captures anything, and finds out at the
+    first real repository rather than in any test.
+    """
+
+    def test_ld_json_is_accepted_or_capture_answers_406(self) -> None:
+        client, _auth, session = make_client([Answer(202, {})])
+        client.request("POST", "/capture", payload={"type": "EPCISDocument"})
+        accept = session.calls[0][2]["headers"]["Accept"]
+        assert "application/ld+json" in accept
+
+    def test_plain_json_stays_accepted_for_the_catalog(self) -> None:
+        # The catalog and registry answer application/json; dropping it would
+        # trade one 406 for another.
+        client, _auth, session = make_client([Answer(200, {})])
+        client.request("GET", "/products/09520123456788")
+        accept = session.calls[0][2]["headers"]["Accept"]
+        assert "application/json" in accept
