@@ -16,6 +16,7 @@ from benelog_client.events import (
     cbv,
     document,
     error_declaration,
+    gtin14,
     idempotency_key,
     instance_uri,
     object_event,
@@ -519,3 +520,34 @@ class TestErrorDeclaration:
             ),
         )
         assert event["errorDeclaration"]["reason"] == "did_not_occur"
+
+
+class TestDigitalLinkGtin:
+    """AI 01 is fourteen digits, whatever the barcode says.
+
+    An event carrying `/01/9521234000013` — thirteen digits, straight out of
+    `product.barcode` — is accepted with a 202 and then rejected by the
+    repository's validation with "Translation failed". Measured against
+    api.dev.epcis.cloud on 2026-08-30, from a running Odoo.
+
+    The older tests could not catch this: they built the expected identifier out
+    of the same barcode field, so they asserted whatever the code produced.
+    """
+
+    def test_an_ean_is_padded_to_fourteen(self) -> None:
+        assert instance_uri("9521234000013") == "https://id.gs1.org/01/09521234000013"
+        assert instance_uri("9521234000013", lot="CHARGE-1") == (
+            "https://id.gs1.org/01/09521234000013/10/CHARGE-1"
+        )
+
+    def test_shorter_gtins_are_padded_too(self) -> None:
+        assert instance_uri("952000000002") == "https://id.gs1.org/01/00952000000002"
+        assert instance_uri("95200007") == "https://id.gs1.org/01/00000095200007"
+
+    def test_a_gtin14_is_left_as_it_is(self) -> None:
+        assert instance_uri("09521234000013") == "https://id.gs1.org/01/09521234000013"
+
+    def test_something_that_is_not_a_gtin_is_passed_on_untouched(self) -> None:
+        # Not a GTIN, so not this function's business to reshape.
+        assert gtin14("ABC-123") == "ABC-123"
+        assert gtin14("123456789012345") == "123456789012345"
