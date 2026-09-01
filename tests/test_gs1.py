@@ -21,6 +21,7 @@ this and unable to collide with a real company's numbers.
 import dataclasses
 import unittest
 
+from benelog_client.core import gs1
 from benelog_client.core.gs1 import (
     ANCHOR_AI,
     BAD_CHECK_DIGIT,
@@ -234,3 +235,33 @@ class TestLanguageTag(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGtin14(unittest.TestCase):
+    """Wherever a GTIN becomes part of an address, it is fourteen digits.
+
+    The AI 01 segment of a Digital Link and the catalog resource
+    `/products/{gtin}` are both addresses. Two systems that disagree about the
+    padding write the same product to two different places — measured: the Java
+    connector pads (`Gs1Keys.padToGtin14`), the Odoo one did not.
+    """
+
+    def test_an_ean13_is_padded(self) -> None:
+        self.assertEqual(gs1.gtin14("9520000000004"), "09520000000004")
+
+    def test_shorter_forms_are_padded_too(self) -> None:
+        self.assertEqual(gs1.gtin14("952000000002"), "00952000000002")
+        self.assertEqual(gs1.gtin14("95200007"), "00000095200007")
+
+    def test_fourteen_digits_are_left_alone(self) -> None:
+        self.assertEqual(gs1.gtin14("09520000000004"), "09520000000004")
+
+    def test_the_padding_people_leave_in_is_still_taken_out(self) -> None:
+        # clean() first: a spreadsheet hands over "  9520000000004 ".
+        self.assertEqual(gs1.gtin14("  9520000000004 "), "09520000000004")
+
+    def test_what_is_not_a_gtin_comes_back_unpadded(self) -> None:
+        # Cleaned like any other key — the hyphen goes, as it does in clean() —
+        # but no digits are invented in front of something that is not a GTIN.
+        self.assertEqual(gs1.gtin14("ABC-123"), "ABC123")
+        self.assertEqual(gs1.gtin14(None), "")
