@@ -26,6 +26,7 @@ from benelog_client.events import (
     sscc_uri,
     stamp_event_ids,
     transaction_event,
+    transformation_event,
 )
 
 from .conftest import Answer, StubSession
@@ -604,3 +605,55 @@ class TestTransactionEvent:
         )
         event_id = stamped["epcisBody"]["eventList"][0]["eventID"]
         assert str(event_id).startswith("ni:///sha-256;")
+
+
+class TestTransformationEvent:
+    """The one event that carries a claim across a production step."""
+
+    def _flour_into_bread(self, **kw: Any) -> dict[str, Any]:
+        kw.setdefault(
+            "input_quantities",
+            [quantity_element("https://id.gs1.org/01/09520123456788/10/FLOUR-7", 25, "KGM")],
+        )
+        kw.setdefault("output_epcs", ["https://id.gs1.org/01/09520000000004/21/LOAF-1"])
+        return transformation_event(
+            event_time=datetime(2026, 9, 1, 6, 0, tzinfo=timezone.utc), **kw
+        )
+
+    def test_both_sides_travel_in_one_event(self) -> None:
+        event = self._flour_into_bread(biz_step=cbv.COMMISSIONING, disposition=cbv.ACTIVE)
+        assert event["type"] == "TransformationEvent"
+        assert event["inputQuantityList"][0]["epcClass"].endswith("/10/FLOUR-7")
+        assert event["outputEPCList"] == ["https://id.gs1.org/01/09520000000004/21/LOAF-1"]
+
+    def test_it_carries_no_action(self) -> None:
+        # Both "these came into being" and "these ceased to be" are true at
+        # once, so the field could only say one of them. EPCIS leaves it out.
+        assert "action" not in self._flour_into_bread()
+
+    def test_without_inputs_it_would_claim_the_output_came_from_nothing(self) -> None:
+        with pytest.raises(ValueError, match="came from nothing"):
+            transformation_event(
+                event_time=datetime(2026, 9, 1, 6, 0, tzinfo=timezone.utc),
+                output_epcs=["https://id.gs1.org/01/09520000000004/21/LOAF-1"],
+            )
+
+    def test_without_outputs_it_would_claim_the_input_became_nothing(self) -> None:
+        with pytest.raises(ValueError, match="became nothing"):
+            transformation_event(
+                event_time=datetime(2026, 9, 1, 6, 0, tzinfo=timezone.utc),
+                input_epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+            )
+
+    def test_a_transformation_reported_in_parts_is_tied_together_by_its_id(self) -> None:
+        event = self._flour_into_bread(transformation_id="urn:uuid:batch-42")
+        assert event["transformationID"] == "urn:uuid:batch-42"
+
+    def test_it_hashes_like_any_other_event(self) -> None:
+        stamped = stamp_event_ids(
+            document(
+                [self._flour_into_bread(biz_step=cbv.COMMISSIONING)],
+                creation_time=datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc),
+            )
+        )
+        assert str(stamped["epcisBody"]["eventList"][0]["eventID"]).startswith("ni:///sha-256;")
