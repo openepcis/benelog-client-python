@@ -547,7 +547,7 @@ class TestDigitalLinkGtin:
     def test_a_gtin14_is_left_as_it_is(self) -> None:
         assert instance_uri("09521234000013") == "https://id.gs1.org/01/09521234000013"
 
-    def test_something_that_is_not_a_gtin_is_passed_on_untouched(self) -> None:
-        # Not a GTIN, so not this function's business to reshape.
-        assert gtin14("ABC-123") == "ABC-123"
+    def test_something_that_is_not_a_gtin_is_not_padded(self) -> None:
+        # Cleaned like any key, but no digits invented in front of it.
+        assert gtin14("ABC-123") == "ABC123"
         assert gtin14("123456789012345") == "123456789012345"
