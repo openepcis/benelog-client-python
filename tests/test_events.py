@@ -13,6 +13,7 @@ from benelog_client.events import (
     Capture,
     Query,
     aggregation_event,
+    biz_transaction,
     cbv,
     document,
     error_declaration,
@@ -24,6 +25,7 @@ from benelog_client.events import (
     sgln,
     sscc_uri,
     stamp_event_ids,
+    transaction_event,
 )
 
 from .conftest import Answer, StubSession
@@ -551,3 +553,54 @@ class TestDigitalLinkGtin:
         # Cleaned like any key, but no digits invented in front of it.
         assert gtin14("ABC-123") == "ABC123"
         assert gtin14("123456789012345") == "123456789012345"
+
+
+class TestTransactionEvent:
+    """Goods and paperwork, and the moment the relationship between them changes."""
+
+    def _event(self, action: str, **kw: Any) -> dict[str, Any]:
+        kw.setdefault("epcs", ["https://id.gs1.org/01/09520123456788/21/SN-1"])
+        return transaction_event(
+            action=action,
+            event_time=datetime(2026, 9, 1, 9, 0, tzinfo=timezone.utc),
+            biz_transactions=[biz_transaction(cbv.DESADV, "WH/OUT/00007", "9520000000011")],
+            **kw,
+        )
+
+    def test_it_says_which_paperwork_it_is_about(self) -> None:
+        event = self._event(cbv.DELETE, biz_step=cbv.RECEIVING, disposition=cbv.RETURNED)
+        assert event["type"] == "TransactionEvent"
+        assert event["action"] == "DELETE"
+        assert event["disposition"] == "returned"
+        assert event["bizTransactionList"] == [
+            {
+                "type": "desadv",
+                "bizTransaction": "urn:epcglobal:cbv:bt:9520000000011:WH%2FOUT%2F00007",
+            }
+        ]
+
+    def test_without_paperwork_it_is_not_a_transaction_event(self) -> None:
+        # An event that associates goods with nothing is an ObjectEvent, and
+        # saying so here is kinder than letting the repository refuse it.
+        with pytest.raises(ValueError, match="business transaction"):
+            transaction_event(
+                action=cbv.ADD,
+                event_time=datetime(2026, 9, 1, 9, 0, tzinfo=timezone.utc),
+                biz_transactions=[],
+                epcs=["https://id.gs1.org/01/09520123456788/21/SN-1"],
+            )
+
+    def test_it_can_name_a_whole_unit(self) -> None:
+        event = self._event(cbv.ADD, parent_id="https://id.gs1.org/00/095212340000000012", epcs=())
+        assert event["parentID"] == "https://id.gs1.org/00/095212340000000012"
+        assert "epcList" not in event
+
+    def test_it_hashes_like_any_other_event(self) -> None:
+        stamped = stamp_event_ids(
+            document(
+                [self._event(cbv.DELETE, biz_step=cbv.RECEIVING)],
+                creation_time=datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc),
+            )
+        )
+        event_id = stamped["epcisBody"]["eventList"][0]["eventID"]
+        assert str(event_id).startswith("ni:///sha-256;")
