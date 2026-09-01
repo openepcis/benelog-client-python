@@ -194,9 +194,10 @@ class TestDigitalLink(unittest.TestCase):
         )
 
     def test_tolerates_a_trailing_slash(self):
+        # …and pads the GTIN on the way, because AI 01 is fourteen digits.
         self.assertEqual(
             digital_link("https://id.epcis.cloud/", "01", TEST_GTIN13),
-            "https://id.epcis.cloud/01/9520000000004",
+            "https://id.epcis.cloud/01/09520000000004",
         )
 
     def test_cleans_the_key_on_the_way_in(self):
@@ -259,6 +260,20 @@ class TestGtin14(unittest.TestCase):
     def test_the_padding_people_leave_in_is_still_taken_out(self) -> None:
         # clean() first: a spreadsheet hands over "  9520000000004 ".
         self.assertEqual(gs1.gtin14("  9520000000004 "), "09520000000004")
+
+    def test_a_digital_link_carries_the_padded_gtin(self) -> None:
+        # The URI in a label and in the UI is an address like any other.
+        self.assertEqual(
+            gs1.digital_link("https://id.example.test", "01", "9520000000004"),
+            "https://id.example.test/01/09520000000004",
+        )
+
+    def test_a_gln_under_ai_414_keeps_its_thirteen_digits(self) -> None:
+        # Padding it would invent a location.
+        self.assertEqual(
+            gs1.digital_link("https://id.example.test", "414", "9520000000011"),
+            "https://id.example.test/414/9520000000011",
+        )
 
     def test_what_is_not_a_gtin_comes_back_unpadded(self) -> None:
         # Cleaned like any other key — the hyphen goes, as it does in clean() —
