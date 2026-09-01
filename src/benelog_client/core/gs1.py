@@ -175,12 +175,18 @@ def digital_link(base_url: str, ai: str, key: object) -> str:
     ``https://id.example.org/01/09521234567890``. No qualifiers: publication
     happens at model level, where the key alone is the whole identity.
 
+    AI 01 is written with fourteen digits — a Digital Link addresses a GTIN in
+    its padded form, whatever length the barcode on the product has. Other AIs
+    keep their own length: a GLN under AI 414 is thirteen digits and padding it
+    would invent a location.
+
     Returns an empty string when any part is missing, so that a half-built URI
     never reaches a form or a label.
     """
     if not base_url or not ai or not key:
         return ""
-    return "{}/{}/{}".format(base_url.rstrip("/"), ai, clean(key))
+    value = gtin14(key) if str(ai) == ANCHOR_AI["GTIN"] else clean(key)
+    return "{}/{}/{}".format(base_url.rstrip("/"), ai, value)
 
 
 def language_tag(locale: str | None) -> str:
