@@ -13,12 +13,26 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "benelog GmbH & Co. KG" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
 # 3.10 is the oldest interpreter current Odoo supports; ERPNext (Frappe 15+)
 # requires 3.10 as well, so this is the floor both hosts share.
 requires-python = ">=3.10"
 dependencies = [
     "requests>=2.28",
 ]
+
+[project.urls]
+Source = "https://github.com/openepcis/benelog-client-python"
+Issues = "https://github.com/openepcis/benelog-client-python/issues"
+Changelog = "https://github.com/openepcis/benelog-client-python/releases"
 
 [project.optional-dependencies]
 # The canonical CBV event hash — the eventID of every event this client builds.

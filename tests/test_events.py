@@ -531,7 +531,7 @@ class TestDigitalLinkGtin:
     An event carrying `/01/9521234000013` — thirteen digits, straight out of
     `product.barcode` — is accepted with a 202 and then rejected by the
     repository's validation with "Translation failed". Measured against
-    api.dev.epcis.cloud on 2026-08-30, from a running Odoo.
+    a live EPCIS repository on 2026-08-30, from a running Odoo.
 
     The older tests could not catch this: they built the expected identifier out
     of the same barcode field, so they asserted whatever the code produced.

@@ -4,7 +4,7 @@
 
 Configuration comes from the environment::
 
-    BENELOG_BASE_URL       e.g. https://id.dev.epcis.cloud
+    BENELOG_BASE_URL       e.g. https://id.epcis.cloud
     BENELOG_CLIENT_ID      the OIDC client the connector authenticates as
     BENELOG_OFFLINE_TOKEN  an offline token issued to that client
     BENELOG_GTIN           optional; when absent, a key is drawn from the pool

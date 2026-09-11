@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 benelog GmbH & Co. KG
+#
+# The same gates as .gitlab-ci.yml, job for job. Keep the two in step until the
+# GitLab copy is retired.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet "ruff==0.16.2"
+      - run: ruff format --check --diff .
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet "ruff==0.16.2"
+      - run: ruff check .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet -e ".[dev]"
+      - run: mypy
+
+  # 3.10 is the oldest interpreter both host frameworks share (see
+  # pyproject.toml); it catches syntax that only works on newer Pythons before
+  # a host does.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install --quiet -e ".[dev]"
+      - run: pytest -q
+
+  # The library is Apache-2.0; a strong-copyleft dependency would make it
+  # effectively copyleft regardless of the header. Fail loudly instead.
+  # MPL-2.0 is deliberately NOT on the fail list: it is file-level copyleft,
+  # compatible with Apache-2.0 combination, and certifi (a transitive
+  # dependency of requests) carries it. Everything else stays permissive.
+  licences:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet -e . pip-licenses
+      - run: >
+          pip-licenses --packages requests urllib3 idna certifi charset-normalizer
+          --fail-on "GPL;GPLv2;GPLv3;LGPL;LGPLv2;LGPLv3;AGPL;AGPLv3"
+
+  reuse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5

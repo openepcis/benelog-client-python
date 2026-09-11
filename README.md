@@ -14,7 +14,8 @@ specific; this library holds no host dependency.
 | Licence | Apache-2.0 |
 | Python | 3.10 or newer |
 | Dependencies | `requests` only |
-| Consumers | `openepcis-odoo` (Odoo 18/19), ERPNext connector (planned) |
+| Consumers | `openepcis-odoo` (Odoo 18/19), which vendors this package |
+| Source | https://github.com/openepcis/benelog-client-python |
 
 ## Modules
 
@@ -32,10 +33,24 @@ on its own host and behind its own permission — capture needs the `capture`
 role, and a credential that publishes products perfectly well is refused there.
 Build a second `Client` for it rather than reusing the resolver's.
 
-The module layout mirrors `benelog-client-java` (planned) so the concepts carry
-across languages. The wire contract both implement is recorded in the Odoo
-repository under `docs/api/observed-contract.md` and is pinned against the
-platform's live OpenAPI.
+The resolver endpoints this library depends on are recorded in the Odoo
+repository as `doc/api-contract.json` — paths, verbs and status codes only —
+and its `tools/check-contract.py` compares that file against a running
+deployment.
+
+## Installation
+
+The package is not on PyPI yet. Install it from the repository:
+
+```bash
+pip install "benelog-client @ git+https://github.com/openepcis/benelog-client-python"
+```
+
+The `hash` extra adds the canonical CBV event hash used as the `eventID` of
+every event this library builds; see `pyproject.toml` for why it is an extra
+and what it pulls in. The Odoo addon does not install the package at all: it
+carries a verbatim copy under `openepcis_connector/vendor/`, so it stays
+installable on any Odoo without a Python package beyond what Odoo ships.
 
 ## Usage
 
@@ -51,7 +66,7 @@ from benelog_client.core.config import ClientConfig
 from benelog_client.masterdata import Masterdata
 from benelog_client.registry import Registry
 
-config = ClientConfig(base_url="https://id.dev.epcis.cloud")
+config = ClientConfig(base_url="https://id.epcis.cloud")
 auth = OfflineTokenAuth(config, InMemoryTokenStore(offline_token), client_id="my-connector")
 client = Client(config, auth)
 
@@ -65,10 +80,11 @@ check, is in `examples/publish_product.py`.
 
 ## Status
 
-`core`, `masterdata` and `registry` are extracted and tested; the vocabulary
-manifest is pinned in `masterdata/vocabulary.json`. `resolver` (linkset
-management) and `epcis` (event capture) are planned. See the roadmap in the
-Odoo repository: `docs/architecture/connector-roadmap.md`.
+All four modules are in use by the Odoo addon and covered by the test suite.
+The vocabulary manifest the master data payloads are checked against is pinned
+in `masterdata/vocabulary.json`. The version number is pre-release: the API is
+still allowed to move between minor versions, and a consumer should vendor or
+pin a commit rather than track `main`.
 
 ## Development
 
