@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "benelog-client"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "benelog platform client: core transport and auth, master data publication, GS1 key registry"
 readme = "README.md"
 license = "Apache-2.0"

@@ -23,7 +23,7 @@ Two rules keep the licence honest:
 - English for all code, comments, commits and documentation.
 - Conventional Commits.
 - `ruff format` (pinned version, see `pyproject.toml`), `ruff check`,
-  `mypy --strict`, `reuse lint` all pass before a merge request.
+  `mypy --strict`, `reuse lint` all pass before a pull request.
 - Every public function that implements a GS1 rule cites the relevant section of
   the GS1 General Specifications.
 - Errors carry structured data, never finished sentences meant for end users.

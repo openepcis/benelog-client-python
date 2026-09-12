@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2026 benelog GmbH & Co. KG
 #
-# The same gates as .gitlab-ci.yml, job for job. Keep the two in step until the
-# GitLab copy is retired.
+# The quality gates: format, lint, types, tests on the floor and current
+# interpreters, dependency licences, REUSE compliance.
 
 name: ci
 

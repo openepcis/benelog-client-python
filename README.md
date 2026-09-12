@@ -40,10 +40,15 @@ deployment.
 
 ## Installation
 
-The package is not on PyPI yet. Install it from the repository:
+```bash
+pip install benelog-client
+```
+
+Releases are cut from tags on GitHub and published to PyPI from there; to
+track an unreleased commit, install from the repository instead:
 
 ```bash
-pip install "benelog-client @ git+https://github.com/openepcis/benelog-client-python"
+pip install "benelog-client @ git+https://github.com/openepcis/benelog-client-python@main"
 ```
 
 The `hash` extra adds the canonical CBV event hash used as the `eventID` of
@@ -82,9 +87,9 @@ check, is in `examples/publish_product.py`.
 
 All four modules are in use by the Odoo addon and covered by the test suite.
 The vocabulary manifest the master data payloads are checked against is pinned
-in `masterdata/vocabulary.json`. The version number is pre-release: the API is
-still allowed to move between minor versions, and a consumer should vendor or
-pin a commit rather than track `main`.
+in `masterdata/vocabulary.json`. The version is 0.x: the API is still allowed
+to move between minor versions, and a consumer should pin a release rather
+than track `main`.
 
 ## Development
 
