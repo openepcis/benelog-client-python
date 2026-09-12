@@ -140,9 +140,7 @@ class TestAggregationEvent:
 class TestDocument:
     def test_the_context_sits_on_the_document_not_the_event(self) -> None:
         wrapped = document([object_event(action=cbv.OBSERVE, event_time=NOON)])
-        assert wrapped["@context"] == [
-            "https://ref.gs1.org/standards/epcis/epcis-context.jsonld"
-        ]
+        assert wrapped["@context"] == ["https://ref.gs1.org/standards/epcis/epcis-context.jsonld"]
         assert "@context" not in wrapped["epcisBody"]["eventList"][0]
 
 
