@@ -83,7 +83,7 @@ mypy_path = "src"
 # entry points are wrapped in one function here, and what they answer is
 # checked at runtime rather than by the type checker.
 [[tool.mypy.overrides]]
-module = ["epcis_event_hash_generator.*"]
+module = ["epcis_event_hash_generator.*", "pyld.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

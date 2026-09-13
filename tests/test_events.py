@@ -361,6 +361,40 @@ class TestEventHashIdentity:
             "f895a478db42352042ceb07ac96a607765697ca0a8e6c3fe76cbdefc537d185a?ver=CBV2.0"
         )
 
+    def test_the_context_is_resolved_without_the_network(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The document carries the unversioned context URL; the hash generator
+        # ships a file only for the versioned one and would otherwise fetch.
+        # An Odoo test run forbids that, and so does a pod without egress.
+        import requests
+
+        def no_network(*args: Any, **kwargs: Any) -> Any:
+            raise AssertionError(f"went to the network: {args[1:3]}")
+
+        monkeypatch.setattr(requests.Session, "request", no_network)
+        stamped = stamp_event_ids(
+            document(
+                [
+                    object_event(
+                        action="ADD",
+                        event_time=datetime(2026, 8, 10, 9, 0, tzinfo=timezone.utc),
+                        biz_step="commissioning",
+                        disposition="active",
+                        quantities=[
+                            quantity_element("https://id.gs1.org/01/09520123456788/10/CHARGE-1")
+                        ],
+                        read_point="9520999999990",
+                    )
+                ],
+                creation_time=datetime(2026, 8, 23, 12, 0, tzinfo=timezone.utc),
+            )
+        )
+        assert stamped["epcisBody"]["eventList"][0]["eventID"] == (
+            "ni:///sha-256;"
+            "f895a478db42352042ceb07ac96a607765697ca0a8e6c3fe76cbdefc537d185a?ver=CBV2.0"
+        )
+
     def test_the_same_statement_stamps_the_same_identifier(self) -> None:
         def build(creation: datetime) -> str:
             stamped = stamp_event_ids(
