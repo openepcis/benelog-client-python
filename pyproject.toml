@@ -6,9 +6,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "benelog-client"
+name = "openepcis-client"
 version = "0.1.0"
-description = "benelog platform client: core transport and auth, master data publication, GS1 key registry"
+description = "OpenEPCIS platform client: core transport and auth, master data publication, GS1 key registry"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
@@ -30,9 +30,9 @@ dependencies = [
 ]
 
 [project.urls]
-Source = "https://github.com/openepcis/benelog-client-python"
-Issues = "https://github.com/openepcis/benelog-client-python/issues"
-Changelog = "https://github.com/openepcis/benelog-client-python/releases"
+Source = "https://github.com/openepcis/openepcis-client-python"
+Issues = "https://github.com/openepcis/openepcis-client-python/issues"
+Changelog = "https://github.com/openepcis/openepcis-client-python/releases"
 
 [project.optional-dependencies]
 # The canonical CBV event hash — the eventID of every event this client builds.
@@ -63,7 +63,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/benelog_client"]
+packages = ["src/openepcis_client"]
 
 [tool.ruff]
 line-length = 100
@@ -76,7 +76,7 @@ required-version = "==0.16.2"
 [tool.mypy]
 strict = true
 python_version = "3.10"
-packages = ["benelog_client"]
+packages = ["openepcis_client"]
 mypy_path = "src"
 
 # The hash generator ships no py.typed and is untyped throughout. Its two

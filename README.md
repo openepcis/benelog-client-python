@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- SPDX-FileCopyrightText: 2026 benelog GmbH & Co. KG -->
 
-# benelog-client-python
+# openepcis-client-python
 
-Client library for benelog's product data platform. It carries the parts of a
+Client library for the OpenEPCIS platform. It carries the parts of a
 connector that are the same in every host system: transport and authentication,
 GS1 identifier arithmetic, master data publication, and the GS1 key registry.
 Host adapters (the Odoo addon, the ERPNext app) stay thin and framework
@@ -15,12 +15,12 @@ specific; this library holds no host dependency.
 | Python | 3.10 or newer |
 | Dependencies | `requests` only |
 | Consumers | `openepcis-odoo` (Odoo 18/19), which vendors this package |
-| Source | https://github.com/openepcis/benelog-client-python |
+| Source | https://github.com/openepcis/openepcis-client-python |
 
 ## Modules
 
 ```
-benelog_client/
+openepcis_client/
   core/        Identifiers, Digital Link URIs, transport, auth, errors
   masterdata/  Product and organization records, upsert, bulk, GPC
   registry/    GTIN/GLN allocation, credential deposit, Verified by GS1
@@ -41,14 +41,14 @@ deployment.
 ## Installation
 
 ```bash
-pip install benelog-client
+pip install openepcis-client
 ```
 
 Releases are cut from tags on GitHub and published to PyPI from there; to
 track an unreleased commit, install from the repository instead:
 
 ```bash
-pip install "benelog-client @ git+https://github.com/openepcis/benelog-client-python@main"
+pip install "openepcis-client @ git+https://github.com/openepcis/openepcis-client-python@main"
 ```
 
 The `hash` extra adds the canonical CBV event hash used as the `eventID` of
@@ -65,11 +65,11 @@ it (RFC 9728). Authentication uses an OIDC offline token, which the host's
 with on every exchange.
 
 ```python
-from benelog_client.core.auth import InMemoryTokenStore, OfflineTokenAuth
-from benelog_client.core.client import Client
-from benelog_client.core.config import ClientConfig
-from benelog_client.masterdata import Masterdata
-from benelog_client.registry import Registry
+from openepcis_client.core.auth import InMemoryTokenStore, OfflineTokenAuth
+from openepcis_client.core.client import Client
+from openepcis_client.core.config import ClientConfig
+from openepcis_client.masterdata import Masterdata
+from openepcis_client.registry import Registry
 
 config = ClientConfig(base_url="https://id.epcis.cloud")
 auth = OfflineTokenAuth(config, InMemoryTokenStore(offline_token), client_id="my-connector")

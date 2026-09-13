@@ -8,9 +8,9 @@ from typing import Any
 
 import pytest
 
-from benelog_client.core import gs1
-from benelog_client.masterdata import InvalidKey, Masterdata
-from benelog_client.masterdata import service as service_module
+from openepcis_client.core import gs1
+from openepcis_client.masterdata import InvalidKey, Masterdata
+from openepcis_client.masterdata import service as service_module
 
 GTIN = gs1.with_check_digit("401234567890")
 GTIN_2 = gs1.with_check_digit("401234567891")

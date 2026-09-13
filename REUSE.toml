@@ -6,8 +6,8 @@ path = [
     "LICENSE",
     "NOTICE",
     ".gitignore",
-    "src/benelog_client/py.typed",
-    "src/benelog_client/masterdata/vocabulary.json",
+    "src/openepcis_client/py.typed",
+    "src/openepcis_client/masterdata/vocabulary.json",
 ]
 SPDX-FileCopyrightText = "2026 benelog GmbH & Co. KG"
 SPDX-License-Identifier = "Apache-2.0"

@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from benelog_client.core.client import Client
-from benelog_client.core.config import ClientConfig
-from benelog_client.events import (
+from openepcis_client.core.client import Client
+from openepcis_client.core.config import ClientConfig
+from openepcis_client.events import (
     Capture,
     Query,
     aggregation_event,

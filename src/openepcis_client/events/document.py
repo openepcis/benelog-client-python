@@ -81,7 +81,7 @@ def gtin14(gtin: str) -> str:
     """A GTIN in the 14-digit form a Digital Link requires.
 
     One line, because the arithmetic belongs to the identifier and not to the
-    event: see :func:`benelog_client.core.gs1.gtin14`.
+    event: see :func:`openepcis_client.core.gs1.gtin14`.
 
     AI 01 is fourteen digits — always, whatever length the barcode on the
     product happens to be. A GTIN-13 (the ordinary EAN), a GTIN-12 or a GTIN-8
@@ -557,7 +557,7 @@ def _hashing() -> tuple[Any, Any]:
     except ImportError as missing:  # pragma: no cover - exercised by the message
         raise RuntimeError(
             "Computing an eventID needs the canonical hash generator. Install this "
-            "client with its 'hash' extra: pip install 'benelog-client[hash]'."
+            "client with its 'hash' extra: pip install 'openepcis-client[hash]'."
         ) from missing
     return hash_generator, json_to_py
 

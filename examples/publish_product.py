@@ -4,10 +4,10 @@
 
 Configuration comes from the environment::
 
-    BENELOG_BASE_URL       e.g. https://id.epcis.cloud
-    BENELOG_CLIENT_ID      the OIDC client the connector authenticates as
-    BENELOG_OFFLINE_TOKEN  an offline token issued to that client
-    BENELOG_GTIN           optional; when absent, a key is drawn from the pool
+    OPENEPCIS_BASE_URL       e.g. https://id.epcis.cloud
+    OPENEPCIS_CLIENT_ID      the OIDC client the connector authenticates as
+    OPENEPCIS_OFFLINE_TOKEN  an offline token issued to that client
+    OPENEPCIS_GTIN           optional; when absent, a key is drawn from the pool
 
 Everything else — the Keycloak realm, the token endpoint — is discovered.
 """
@@ -15,26 +15,26 @@ Everything else — the Keycloak realm, the token endpoint — is discovered.
 import os
 import sys
 
-from benelog_client.core.auth import InMemoryTokenStore, OfflineTokenAuth
-from benelog_client.core.client import Client
-from benelog_client.core.config import ClientConfig
-from benelog_client.masterdata import Masterdata
-from benelog_client.masterdata.payload import place, quantity
-from benelog_client.registry import Registry
+from openepcis_client.core.auth import InMemoryTokenStore, OfflineTokenAuth
+from openepcis_client.core.client import Client
+from openepcis_client.core.config import ClientConfig
+from openepcis_client.masterdata import Masterdata
+from openepcis_client.masterdata.payload import place, quantity
+from openepcis_client.registry import Registry
 
 
 def main() -> int:
-    config = ClientConfig(base_url=os.environ["BENELOG_BASE_URL"])
+    config = ClientConfig(base_url=os.environ["OPENEPCIS_BASE_URL"])
     auth = OfflineTokenAuth(
         config,
-        InMemoryTokenStore(os.environ["BENELOG_OFFLINE_TOKEN"]),
-        client_id=os.environ["BENELOG_CLIENT_ID"],
+        InMemoryTokenStore(os.environ["OPENEPCIS_OFFLINE_TOKEN"]),
+        client_id=os.environ["OPENEPCIS_CLIENT_ID"],
     )
     client = Client(config, auth)
     masterdata = Masterdata(client)
     registry = Registry(client)
 
-    gtin = os.environ.get("BENELOG_GTIN", "")
+    gtin = os.environ.get("OPENEPCIS_GTIN", "")
     drawn = not gtin
     if drawn:
         gtin = registry.draw_key("01")

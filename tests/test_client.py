@@ -6,10 +6,10 @@ from typing import Any
 
 import pytest
 
-from benelog_client.core import client as client_module
-from benelog_client.core.client import Client
-from benelog_client.core.config import ClientConfig
-from benelog_client.core.errors import BenelogError
+from openepcis_client.core import client as client_module
+from openepcis_client.core.client import Client
+from openepcis_client.core.config import ClientConfig
+from openepcis_client.core.errors import OpenEpcisError
 
 from .conftest import Answer, StubSession
 
@@ -63,19 +63,19 @@ class TestRetryPolicy:
     def test_post_never_retries(self) -> None:
         # A retried POST could burn a GS1 key or publish twice.
         client, _, session = make_client([Answer(503), Answer(200, {})])
-        with pytest.raises(BenelogError):
+        with pytest.raises(OpenEpcisError):
             client.post("/gs1de/keys/draw", {"ai": "01"})
         assert len(session.calls) == 1
 
     def test_a_validation_error_is_not_retried(self) -> None:
         client, _, session = make_client([Answer(400, {"detail": "gtin is required"})])
-        with pytest.raises(BenelogError, match="gtin is required"):
+        with pytest.raises(OpenEpcisError, match="gtin is required"):
             client.put("/products/1", {})
         assert len(session.calls) == 1
 
     def test_retries_are_bounded(self) -> None:
         client, _, session = make_client([Answer(503)])
-        with pytest.raises(BenelogError):
+        with pytest.raises(OpenEpcisError):
             client.get("/products")
         assert len(session.calls) == client_module.MAX_ATTEMPTS
 
@@ -89,7 +89,7 @@ class TestReauth:
 
     def test_a_second_401_is_the_answer(self) -> None:
         client, auth, _ = make_client([Answer(401), Answer(401)])
-        with pytest.raises(BenelogError) as caught:
+        with pytest.raises(OpenEpcisError) as caught:
             client.get("/products")
         assert caught.value.status == 401
         assert auth.invalidated == 1
@@ -109,14 +109,14 @@ class TestAnswers:
 
     def test_a_login_page_is_named_for_what_it_is(self) -> None:
         client, _, _ = make_client([Answer(200, b"<html>login</html>", "text/html")])
-        with pytest.raises(BenelogError, match="web page instead of data"):
+        with pytest.raises(OpenEpcisError, match="web page instead of data"):
             client.get("/products")
 
     def test_rfc7807_detail_is_preferred(self) -> None:
         client, _, _ = make_client(
             [Answer(422, {"title": "Unprocessable", "detail": "GTIN 1 is not verified by GS1"})]
         )
-        with pytest.raises(BenelogError, match="not verified by GS1") as caught:
+        with pytest.raises(OpenEpcisError, match="not verified by GS1") as caught:
             client.put("/products/1", {})
         assert caught.value.problem["title"] == "Unprocessable"
 

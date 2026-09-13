@@ -10,7 +10,7 @@ A red test here is the early warning.
 
 import pytest
 
-from benelog_client.masterdata import vocabulary
+from openepcis_client.masterdata import vocabulary
 
 
 class TestKinds:

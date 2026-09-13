@@ -4,7 +4,7 @@
 
 import pytest
 
-from benelog_client.masterdata.payload import boolean_text, localized, place, quantity
+from openepcis_client.masterdata.payload import boolean_text, localized, place, quantity
 
 
 class TestPlace:

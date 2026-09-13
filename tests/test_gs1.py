@@ -21,8 +21,8 @@ this and unable to collide with a real company's numbers.
 import dataclasses
 import unittest
 
-from benelog_client.core import gs1
-from benelog_client.core.gs1 import (
+from openepcis_client.core import gs1
+from openepcis_client.core.gs1 import (
     ANCHOR_AI,
     BAD_CHECK_DIGIT,
     BAD_LENGTH,

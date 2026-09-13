@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from benelog_client.core import auth as auth_module
+from openepcis_client.core import auth as auth_module
 
 
 class Answer:

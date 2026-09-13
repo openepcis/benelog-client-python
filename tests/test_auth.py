@@ -9,14 +9,14 @@ typed, and every failure names its own fix.
 
 import pytest
 
-from benelog_client.core.auth import (
+from openepcis_client.core.auth import (
     InMemoryTokenStore,
     OfflineTokenAuth,
     token_subject,
     token_type,
 )
-from benelog_client.core.config import ClientConfig
-from benelog_client.core.errors import BenelogError
+from openepcis_client.core.config import ClientConfig
+from openepcis_client.core.errors import OpenEpcisError
 
 from .conftest import Answer, StubSession, jwt_for
 
@@ -78,14 +78,14 @@ class TestDiscovery:
         session = StubSession()
         session.answer("/.well-known/oauth-protected-resource", Answer(404, b"nope", "text/plain"))
         auth, _ = make_auth(session)
-        with pytest.raises(BenelogError, match="does not publish OAuth metadata"):
+        with pytest.raises(OpenEpcisError, match="does not publish OAuth metadata"):
             auth.issuer()
 
     def test_metadata_without_servers_is_refused(self) -> None:
         session = StubSession()
         session.answer("/.well-known/oauth-protected-resource", Answer(200, {"resource": RESOLVER}))
         auth, _ = make_auth(session)
-        with pytest.raises(BenelogError, match="names no authorization server"):
+        with pytest.raises(OpenEpcisError, match="names no authorization server"):
             auth.issuer()
 
 
@@ -157,7 +157,7 @@ class TestTokenExchange:
             ),
         )
         auth, _ = make_auth(session)
-        with pytest.raises(BenelogError) as caught:
+        with pytest.raises(OpenEpcisError) as caught:
             auth.bearer()
         assert "issued by a different URL" in str(caught.value)
         assert "revoked" not in str(caught.value)
@@ -170,7 +170,7 @@ class TestTokenExchange:
             Answer(400, {"error": "invalid_grant", "error_description": "Session not active"}),
         )
         auth, _ = make_auth(session)
-        with pytest.raises(BenelogError, match="no longer accepted"):
+        with pytest.raises(OpenEpcisError, match="no longer accepted"):
             auth.bearer()
 
 

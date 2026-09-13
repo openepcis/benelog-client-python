@@ -4,8 +4,8 @@
 
 from typing import Any, ClassVar
 
-from benelog_client.registry import Registry
-from benelog_client.registry.service import DRAW_TIMEOUT
+from openepcis_client.registry import Registry
+from openepcis_client.registry.service import DRAW_TIMEOUT
 
 
 class StubClient:
